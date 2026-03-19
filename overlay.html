@@ -332,13 +332,11 @@
     <script>
         // Конфигурация
         const CONFIG = {
-            // Если открыто через localhost, используем локальный сервер. 
-            // Если нет - замените URL на ваш адрес с Render.com
             apiUrl: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                 ? 'http://localhost:3000/api/stats'
-                : '/api/stats', // По умолчанию тот же домен
-            // Интервал обновления (в секундах)
-            updateInterval: 60
+                : '/api/stats',
+            // Ставим 30 секунд для более бодрого обновления
+            updateInterval: 30
         };
 
         // Глобальное состояние сессии
@@ -352,7 +350,10 @@
             overlay.classList.add('updating');
 
             try {
-                const response = await fetch(CONFIG.apiUrl);
+                // Добавляем timestamp для обхода кеша браузера (особенно в OBS)
+                const cacheBuster = `?t=${Date.now()}`;
+                const response = await fetch(CONFIG.apiUrl + cacheBuster);
+
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 

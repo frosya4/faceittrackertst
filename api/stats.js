@@ -4,7 +4,7 @@ const CONFIG = {
     playerNickname: 'DeRoyse'
 };
 
-const CACHE_DURATION = 60000; // 1 минута
+const CACHE_DURATION = 15000; // 15 секунд
 let cache = {
     data: null,
     timestamp: 0

@@ -16,7 +16,7 @@ const CONFIG = {
 // Кэш данных
 let cachedData = null;
 let lastUpdate = 0;
-const CACHE_DURATION = 60000; // 1 минута
+const CACHE_DURATION = 15000; // 15 секунд
 
 // Получение данных игрока из Faceit API
 async function fetchPlayerData() {
