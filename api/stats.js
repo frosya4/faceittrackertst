@@ -111,6 +111,9 @@ async function fetchPlayerData(requestedNickname) {
         else sessionLosses++;
     });
 
+    // Расчёт изменения эло за сессию (приблизительно)
+    const sessionEloDiff = (sessionWins - sessionLosses) * 25;
+
     return {
         nickname: nickname,
         elo: playerData.games.cs2.faceit_elo,
@@ -120,6 +123,7 @@ async function fetchPlayerData(requestedNickname) {
         recentResults, // ["W", "L", "W", ...]
         sessionWins,
         sessionLosses,
+        sessionEloDiff,
         ...last20Stats
     };
 }

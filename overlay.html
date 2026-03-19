@@ -387,7 +387,9 @@
                 document.getElementById('kr-ratio').textContent = `/ ${(data.krRatio || 0).toFixed(2)}`;
 
                 // Отображение сессии из бекенда (за последние 8 часов)
-                document.getElementById('session-score').textContent = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L`;
+                const diff = data.sessionEloDiff || 0;
+                const diffText = diff > 0 ? ` (+${diff})` : diff < 0 ? ` (${diff})` : '';
+                document.getElementById('session-score').textContent = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L${diffText}`;
 
                 // Отрисовка кружков истории
                 renderHistoryDots(data.recentResults);
