@@ -96,7 +96,7 @@ async function fetchPlayerData(requestedNickname) {
     });
 
     return {
-        nickname: CONFIG.playerNickname,
+        nickname: nickname,
         elo: playerData.games.cs2.faceit_elo,
         level: playerData.games.cs2.skill_level,
         kdr: parseFloat(lifetimeStats["Average K/D Ratio"]) || 0,
