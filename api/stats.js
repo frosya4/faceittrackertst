@@ -1,6 +1,6 @@
 // Конфигурация
 const CONFIG = {
-    apiToken: '7f91807d-5ea1-42e1-8846-95777bd4362d',
+    apiToken: 'acfb46b5-b0c3-4359-bc04-f91f97ad74b0', // Взето из server.js
     playerNickname: 'DeRoyse'
 };
 
@@ -35,18 +35,29 @@ async function fetchPlayerData() {
     const playerUrl = `https://open.faceit.com/data/v4/players?nickname=${CONFIG.playerNickname}`;
     const headers = { 'Authorization': `Bearer ${CONFIG.apiToken}` };
 
+    console.log('Fetching player info...');
     const playerRes = await fetch(playerUrl, { headers });
-    if (!playerRes.ok) throw new Error('Player not found');
+
+    if (!playerRes.ok) {
+        const errorText = await playerRes.text();
+        throw new Error(`Player ${CONFIG.playerNickname} not found: ${playerRes.status} ${errorText}`);
+    }
+
     const playerData = await playerRes.json();
     const playerId = playerData.player_id;
 
     const statsUrl = `https://open.faceit.com/data/v4/players/${playerId}/stats/cs2`;
     const historyUrl = `https://open.faceit.com/data/v4/players/${playerId}/history?game=cs2&limit=20`;
 
+    console.log('Fetching history and lifetime stats...');
     const [statsRes, historyRes] = await Promise.all([
         fetch(statsUrl, { headers }),
         fetch(historyUrl, { headers })
     ]);
+
+    if (!statsRes.ok || !historyRes.ok) {
+        throw new Error(`Faceit API error: Stats ${statsRes.status}, History ${historyRes.status}`);
+    }
 
     const statsData = await statsRes.json();
     const historyData = await historyRes.json();
@@ -54,11 +65,17 @@ async function fetchPlayerData() {
     const lifetimeStats = statsData.lifetime || {};
     const matches = historyData.items || [];
 
-    // Получаем детали последних 20 матчей
+    console.log(`Fetching details for ${matches.length} matches...`);
     const matchStatsPromises = matches.map(match =>
         fetch(`https://open.faceit.com/data/v4/matches/${match.match_id}/stats`, { headers })
-            .then(res => res.json())
-            .catch(() => null)
+            .then(async res => {
+                if (!res.ok) throw new Error(`Match ${match.match_id} error: ${res.status}`);
+                return res.json();
+            })
+            .catch(err => {
+                console.warn(err.message);
+                return null;
+            })
     );
 
     const allMatchStats = await Promise.all(matchStatsPromises);
