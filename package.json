@@ -1,6 +1,7 @@
 {
   "name": "faceit-overlay",
   "version": "1.0.0",
+  "type": "module",
   "description": "Faceit stats overlay для OBS",
   "main": "server.js",
   "scripts": {
