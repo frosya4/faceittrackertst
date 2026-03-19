@@ -388,8 +388,9 @@
 
                 // Отображение сессии из бекенда (за последние 8 часов)
                 const diff = data.sessionEloDiff || 0;
-                const diffText = diff > 0 ? ` (+${diff})` : diff < 0 ? ` (${diff})` : '';
-                document.getElementById('session-score').textContent = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L${diffText}`;
+                const sign = diff > 0 ? '+' : '';
+                const color = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#707070';
+                document.getElementById('session-score').innerHTML = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L <span style="color: ${color}">(${sign}${diff})</span>`;
 
                 // Отрисовка кружков истории
                 renderHistoryDots(data.recentResults);
