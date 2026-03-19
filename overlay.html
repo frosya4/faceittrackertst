@@ -268,8 +268,11 @@
     <script>
         // Конфигурация
         const CONFIG = {
-            // URL локального API сервера
-            apiUrl: 'http://localhost:3000/api/stats',
+            // Если открыто через localhost, используем локальный сервер. 
+            // Если нет - замените URL на ваш адрес с Render.com
+            apiUrl: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000/api/stats'
+                : '/api/stats', // По умолчанию тот же домен
             // Интервал обновления (в секундах)
             updateInterval: 60
         };

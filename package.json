@@ -6,7 +6,15 @@
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["faceit", "overlay", "cs2", "stats"],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "faceit",
+    "overlay",
+    "cs2",
+    "stats"
+  ],
   "author": "",
   "license": "MIT"
 }
