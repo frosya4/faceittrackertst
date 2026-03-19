@@ -1,0 +1,13 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/",
+            "destination": "/overlay.html"
+        },
+        {
+            "source": "/api/stats",
+            "destination": "/api/stats.js"
+        }
+    ]
+}
