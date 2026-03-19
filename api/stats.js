@@ -105,14 +105,21 @@ async function fetchPlayerData(requestedNickname) {
     const sessionMatches = matches.filter(m => m.finished_at >= eightHoursAgo);
     let sessionWins = 0;
     let sessionLosses = 0;
+
     sessionMatches.forEach(m => {
-        const teamId = m.teams.faction1.players.some(p => p.player_id === playerId) ? 'faction1' : 'faction2';
-        if (m.results?.winner === teamId) sessionWins++;
-        else sessionLosses++;
+        // Проверяем, что матч был завершен и результат есть
+        if (m.status === 'FINISHED' && m.results?.winner) {
+            const teamId = m.teams.faction1.players.some(p => p.player_id === playerId) ? 'faction1' : 'faction2';
+            if (m.results.winner === teamId) {
+                sessionWins++;
+            } else {
+                sessionLosses++;
+            }
+        }
     });
 
-    // Расчёт изменения эло за сессию (приблизительно)
-    const sessionEloDiff = (sessionWins - sessionLosses) * 25;
+    // Расчёт изменения эло за сессию (приблизительно по 25 за матч)
+    const sessionEloDiff = (sessionWins * 25) - (sessionLosses * 25);
 
     return {
         nickname: nickname,
