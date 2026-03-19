@@ -100,6 +100,17 @@ async function fetchPlayerData(requestedNickname) {
         return winnerId === teamId ? 'W' : 'L';
     });
 
+    // Расчёт сессии (последние 8 часов)
+    const eightHoursAgo = Math.floor(Date.now() / 1000) - (8 * 60 * 60);
+    const sessionMatches = matches.filter(m => m.finished_at >= eightHoursAgo);
+    let sessionWins = 0;
+    let sessionLosses = 0;
+    sessionMatches.forEach(m => {
+        const teamId = m.teams.faction1.players.some(p => p.player_id === playerId) ? 'faction1' : 'faction2';
+        if (m.results?.winner === teamId) sessionWins++;
+        else sessionLosses++;
+    });
+
     return {
         nickname: nickname,
         elo: playerData.games.cs2.faceit_elo,
@@ -107,6 +118,8 @@ async function fetchPlayerData(requestedNickname) {
         kdr: parseFloat(lifetimeStats["Average K/D Ratio"]) || 0,
         lastMatchId: matches[0]?.match_id || null,
         recentResults, // ["W", "L", "W", ...]
+        sessionWins,
+        sessionLosses,
         ...last20Stats
     };
 }

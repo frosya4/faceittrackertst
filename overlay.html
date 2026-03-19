@@ -386,17 +386,8 @@
                 document.getElementById('kdr').textContent = (data.kdr || 0).toFixed(2);
                 document.getElementById('kr-ratio').textContent = `/ ${(data.krRatio || 0).toFixed(2)}`;
 
-                // Логика сессии (W/L)
-                if (data.lastMatchId && lastMatchId && data.lastMatchId !== lastMatchId) {
-                    const latestResult = data.recentResults?.[0];
-                    if (latestResult === 'W') sessionWins++;
-                    else if (latestResult === 'L') sessionLosses++;
-                }
-
-                // Сохраняем последний ID
-                if (data.lastMatchId) lastMatchId = data.lastMatchId;
-
-                document.getElementById('session-score').textContent = `SESSION: ${sessionWins}W - ${sessionLosses}L`;
+                // Отображение сессии из бекенда (за последние 8 часов)
+                document.getElementById('session-score').textContent = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L`;
 
                 // Отрисовка кружков истории
                 renderHistoryDots(data.recentResults);

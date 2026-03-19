@@ -98,6 +98,17 @@ async function fetchPlayerData(requestedNickname) {
     // Расчёт статистики за последние 20 матчей
     const last20Stats = calculateLast20Stats(allMatchStats, playerId, lifetimeStats);
 
+    // Расчёт сессии (последние 8 часов)
+    const eightHoursAgo = Math.floor(Date.now() / 1000) - (8 * 60 * 60);
+    const sessionMatches = historyItems.filter(m => m.finished_at >= eightHoursAgo);
+    let sessionWins = 0;
+    let sessionLosses = 0;
+    sessionMatches.forEach(m => {
+        const teamId = m.teams.faction1.players.some(p => p.player_id === playerId) ? 'faction1' : 'faction2';
+        if (m.results?.winner === teamId) sessionWins++;
+        else sessionLosses++;
+    });
+
     return {
         elo: cs2Stats.faceit_elo || 0,
         level: cs2Stats.skill_level || 1,
@@ -112,6 +123,8 @@ async function fetchPlayerData(requestedNickname) {
         hsPercent: last20Stats.hsPercent,
         kdRatio: last20Stats.kdRatio,
         krRatio: last20Stats.krRatio,
+        sessionWins,
+        sessionLosses,
         nickname: player.nickname || nickname,
         avatar: player.avatar || '',
         lastUpdated: new Date().toISOString()
