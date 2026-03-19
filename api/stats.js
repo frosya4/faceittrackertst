@@ -7,7 +7,8 @@ const CONFIG = {
 const CACHE_DURATION = 15000; // 15 секунд
 let cache = {
     data: null,
-    timestamp: 0
+    timestamp: 0,
+    nickname: null
 };
 
 export default async function handler(req, res) {
@@ -15,18 +16,20 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
 
-    const now = Date.now();
-    if (cache.data && (now - cache.timestamp < CACHE_DURATION)) {
-        return res.status(200).json({ ...cache.data, fromCache: true });
-    }
-
     try {
         const url = new URL(req.url, `http://${req.headers.host}`);
         const nickname = url.searchParams.get('n') || url.searchParams.get('nickname');
+        const actualNickname = nickname || CONFIG.playerNickname;
 
-        const stats = await fetchPlayerData(nickname);
+        // Проверяем кэш именно для этого никнейма
+        if (cache.nickname === actualNickname && cache.data && (now - cache.timestamp < CACHE_DURATION)) {
+            return res.status(200).json({ ...cache.data, fromCache: true });
+        }
+
+        const stats = await fetchPlayerData(actualNickname);
         cache.data = stats;
         cache.timestamp = now;
+        cache.nickname = actualNickname;
         res.status(200).json({ ...stats, fromCache: false });
     } catch (error) {
         console.error('API Error:', error);
