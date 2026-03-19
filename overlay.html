@@ -386,10 +386,33 @@
                 document.getElementById('kdr').textContent = (data.kdr || 0).toFixed(2);
                 document.getElementById('kr-ratio').textContent = `/ ${(data.krRatio || 0).toFixed(2)}`;
 
-                // Отображение сессии из бекенда (за последние 8 часов)
-                const diff = data.sessionEloDiff || 0;
+                // --- Логика точного Эло-диффа ---
+                const currentElo = Math.round(data.elo) || 0;
+                let startElo = localStorage.getItem('faceit_start_elo');
+                let startTime = localStorage.getItem('faceit_start_time');
+                const now = Date.now();
+
+                // Если есть ручной параметр в URL, используем его (приоритет)
+                const urlStartElo = new URLSearchParams(window.location.search).get('startElo');
+                if (urlStartElo) {
+                    startElo = parseInt(urlStartElo);
+                    localStorage.setItem('faceit_start_elo', startElo);
+                    localStorage.setItem('faceit_start_time', now);
+                }
+
+                // Если данных нет или они старше 8 часов, сбрасываем точку отсчета
+                if (!startElo || !startTime || (now - startTime > 8 * 60 * 60 * 1000)) {
+                    startElo = currentElo;
+                    startTime = now;
+                    localStorage.setItem('faceit_start_elo', startElo);
+                    localStorage.setItem('faceit_start_time', startTime);
+                }
+
+                const diff = currentElo - startElo;
                 const sign = diff > 0 ? '+' : '';
                 const color = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#707070';
+
+                // Отображение сессии
                 document.getElementById('session-score').innerHTML = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L <span style="color: ${color}">(${sign}${diff})</span>`;
 
                 // Отрисовка кружков истории
