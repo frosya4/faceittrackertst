@@ -47,18 +47,20 @@
         }
 
         .level-badge {
-            width: 50px;
-            height: 50px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 4px solid #ff2601;
+            /* Тот самый красный */
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 22px;
+            font-weight: 800;
+            color: #ff2601;
+            background: rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
-        }
-
-        .level-badge img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+            box-shadow: 0 0 10px rgba(255, 38, 1, 0.3);
         }
 
         .elo-value {
@@ -250,11 +252,7 @@
             <!-- Верхняя панель -->
             <div class="top-panel">
                 <div class="elo-section">
-                    <div class="level-badge" id="level-badge">
-                        <img id="level-icon"
-                            src="https://cdn-frontend.faceit.com/web/960/src/app/assets/images-v2/skill-levels/skill_level_10_svg.svg"
-                            alt="Level">
-                    </div>
+                    <div class="level-badge" id="level-badge">10</div>
                     <span class="elo-value" id="elo">Загрузка...</span>
                 </div>
                 <span class="separator">|</span>
@@ -344,7 +342,20 @@
                 // Обновление ELO и уровня
                 document.getElementById('elo').textContent = Math.round(data.elo) || 0;
                 const level = data.level || 1;
-                document.getElementById('level-icon').src = `https://cdn-frontend.faceit.com/web/960/src/app/assets/images-v2/skill-levels/skill_level_${level}_svg.svg`;
+                const levelBadge = document.getElementById('level-badge');
+                levelBadge.textContent = level;
+
+                // Цвета уровней Faceit
+                const levelColors = {
+                    1: '#eeeeee', 2: '#1fd260', 3: '#1fd260',
+                    4: '#ffc800', 5: '#ffc800', 6: '#ffc800', 7: '#ffc800',
+                    8: '#ff6400', 9: '#ff6400',
+                    10: '#ff2601' // Тот самый красный
+                };
+                const levelColor = levelColors[level] || '#ff2601';
+                levelBadge.style.borderColor = levelColor;
+                levelBadge.style.color = levelColor;
+                levelBadge.style.boxShadow = `0 0 10px ${levelColor}4d`;
 
                 // Обновление статистики
                 document.getElementById('kd-ratio').textContent = (data.kdRatio || 0).toFixed(2);
@@ -378,10 +389,10 @@
 
                 const diff = currentElo - startElo;
                 const sign = diff > 0 ? '+' : '';
-                const color = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#707070';
+                const diffColor = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#707070';
 
                 // Отображение сессии
-                document.getElementById('session-score').innerHTML = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L <span style="color: ${color}">(${sign}${diff})</span>`;
+                document.getElementById('session-score').innerHTML = `SESSION: ${data.sessionWins || 0}W - ${data.sessionLosses || 0}L <span style="color: ${diffColor}">(${sign}${diff})</span>`;
 
                 // Отрисовка кружков истории
                 renderHistoryDots(data.recentResults);
