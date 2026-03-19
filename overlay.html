@@ -47,52 +47,18 @@
         }
 
         .level-badge {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: conic-gradient(var(--level-color) 0deg, var(--level-color) var(--level-percent), #333 var(--level-percent), #333 360deg);
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
             transition: all 0.3s ease;
         }
 
-        .level-badge::before {
-            content: attr(data-level);
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--level-color);
-            background: #1a1a1a;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Специальный стиль для 10 лвла - как на скриншоте пользователя */
-        .level-badge[data-level="10"] {
-            background: transparent;
-            border: 4px solid var(--level-color);
-            box-shadow: 0 0 10px rgba(255, 85, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .level-badge[data-level="10"]::before {
-            background: transparent;
-            color: var(--level-color);
-            font-size: 20px;
-            width: auto;
-            height: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: -3px;
-            /* Сдвигаем еще выше */
+        .level-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .elo-value {
@@ -284,7 +250,11 @@
             <!-- Верхняя панель -->
             <div class="top-panel">
                 <div class="elo-section">
-                    <div class="level-badge" data-level="10" style="--level-percent: 100%"></div>
+                    <div class="level-badge" id="level-badge">
+                        <img id="level-icon"
+                            src="https://cdn-frontend.faceit.com/web/960/src/app/assets/images-v2/skill-levels/skill_level_10_svg.svg"
+                            alt="Level">
+                    </div>
                     <span class="elo-value" id="elo">Загрузка...</span>
                 </div>
                 <span class="separator">|</span>
@@ -373,10 +343,8 @@
 
                 // Обновление ELO и уровня
                 document.getElementById('elo').textContent = Math.round(data.elo) || 0;
-                const levelBadge = document.querySelector('.level-badge');
-                levelBadge.setAttribute('data-level', data.level || 1);
-                const percent = (data.level || 1) === 10 ? 100 : (data.level / 10) * 100;
-                levelBadge.style.setProperty('--level-percent', `${percent}%`);
+                const level = data.level || 1;
+                document.getElementById('level-icon').src = `https://cdn-frontend.faceit.com/web/960/src/app/assets/images-v2/skill-levels/skill_level_${level}_svg.svg`;
 
                 // Обновление статистики
                 document.getElementById('kd-ratio').textContent = (data.kdRatio || 0).toFixed(2);
