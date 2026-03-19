@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faceit Stats Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: transparent;
+            padding: 20px;
+        }
+
+        .overlay-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: fit-content;
+        }
+
+        /* Верхняя панель - ELO и KDR */
+        .top-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1a1a1a;
+            border-radius: 25px;
+            padding: 12px 25px;
+            min-width: 400px;
+        }
+
+        .elo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        :root {
+            --level-color: #ff5500;
+        }
+
+        .level-badge {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: conic-gradient(var(--level-color) 0deg, var(--level-color) var(--level-percent), #333 var(--level-percent), #333 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .level-badge::before {
+            content: attr(data-level);
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--level-color);
+            background: #1a1a1a;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Специальный стиль для 10 лвла - как на скриншоте пользователя */
+        .level-badge[data-level="10"] {
+            background: transparent;
+            border: 4px solid var(--level-color);
+            box-shadow: 0 0 10px rgba(255, 85, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .level-badge[data-level="10"]::before {
+            background: transparent;
+            color: var(--level-color);
+            font-size: 20px;
+            width: auto;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: -3px;
+            /* Сдвигаем еще выше */
+        }
+
+        .elo-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .separator {
+            color: #666;
+            font-size: 24px;
+            margin: 0 10px;
+        }
+
+        .kdr-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kdr-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .kdr-label {
+            font-size: 20px;
+            color: #aaa;
+            font-weight: 600;
+        }
+
+        /* Нижняя панель - статистика */
+        .bottom-panel {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 12px 20px;
+            min-width: 400px;
+        }
+
+        .matches-header {
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-group.middle {
+            position: relative;
+        }
+
+        .stat-group.middle::before,
+        .stat-group.middle::after {
+            content: '|';
+            position: absolute;
+            color: #444;
+            font-size: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .stat-group.middle::before {
+            left: -25px;
+        }
+
+        .stat-group.middle::after {
+            right: -25px;
+        }
+
+        .stat-sublabel {
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* Анимация обновления */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .updating {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .error-state {
+            color: #ff4444 !important;
+        }
+
+        /* Настройки позиции */
+        .overlay-wrapper {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="overlay-wrapper">
+        <div class="overlay-container" id="overlay">
+            <!-- Верхняя панель -->
+            <div class="top-panel">
+                <div class="elo-section">
+                    <div class="level-badge" data-level="10" style="--level-percent: 100%"></div>
+                    <span class="elo-value" id="elo">Загрузка...</span>
+                </div>
+                <span class="separator">|</span>
+                <div class="kdr-section">
+                    <span class="kdr-value" id="kdr">--</span>
+                    <span class="kdr-label">KDR</span>
+                </div>
+            </div>
+
+            <!-- Нижняя панель -->
+            <div class="bottom-panel">
+                <div class="matches-header">LAST 20 MATCHES</div>
+                <div class="stats-row">
+                    <div class="stat-group">
+                        <span class="stat-value" id="winrate">--%</span>
+                        <span class="stat-label">Win rate</span>
+                    </div>
+                    <div class="stat-group middle">
+                        <span class="stat-value" id="avg-kills">--</span>
+                        <span class="stat-sublabel" id="hs-percent">/ --%</span>
+                        <span class="stat-label">Avg. kills / HS</span>
+                    </div>
+                    <div class="stat-group">
+                        <span class="stat-value" id="kd-ratio">--</span>
+                        <span class="stat-sublabel" id="kr-ratio">/ --</span>
+                        <span class="stat-label">Avg. K/D / K/R</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация
+        const CONFIG = {
+            // URL локального API сервера
+            apiUrl: 'http://localhost:3000/api/stats',
+            // Интервал обновления (в секундах)
+            updateInterval: 60
+        };
+
+        // Обновление данных
+        async function updateStats() {
+            const overlay = document.getElementById('overlay');
+
+            overlay.classList.add('updating');
+
+            try {
+                const response = await fetch(CONFIG.apiUrl);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error && !data.elo) {
+                    throw new Error(data.error);
+                }
+
+                // Цвета уровней Faceit
+                const levelColors = {
+                    1: '#eeeeee',
+                    2: '#1ce52c', 3: '#1ce52c',
+                    4: '#ffde00', 5: '#ffde00',
+                    6: '#ff9100', 7: '#ff9100',
+                    8: '#ff4e00', 9: '#ff4e00',
+                    10: '#ff0000'
+                };
+
+                const currentLevel = data.level || 1;
+                const levelColor = levelColors[currentLevel] || '#ff5500';
+
+                // Обновление элементов
+                document.getElementById('elo').textContent = Math.round(data.elo) || 0;
+
+                const levelBadge = document.querySelector('.level-badge');
+                levelBadge.setAttribute('data-level', currentLevel);
+
+                // Для 10 уровня кольцо всегда полное, для остальных - прогресс до следующего (упрощенно до 10 части)
+                const percent = currentLevel === 10 ? 100 : (currentLevel / 10) * 100;
+
+                document.documentElement.style.setProperty('--level-color', levelColor);
+                levelBadge.style.setProperty('--level-percent', `${percent}%`);
+
+                document.getElementById('kdr').textContent = (data.kdr || 0).toFixed(2);
+                document.getElementById('winrate').textContent = `${data.winrate || 0}%`;
+                document.getElementById('avg-kills').textContent = (data.avgKills || 0).toFixed(1);
+                document.getElementById('hs-percent').textContent = `/ ${data.hsPercent || 0}%`;
+                document.getElementById('kd-ratio').textContent = (data.kdRatio || 0).toFixed(2);
+                document.getElementById('kr-ratio').textContent = `/ ${(data.krRatio || 0).toFixed(2)}`;
+
+                // Убираем ошибку если была
+                document.querySelectorAll('*').forEach(el => el.classList.remove('error-state'));
+
+            } catch (error) {
+                console.error('Ошибка обновления данных:', error);
+
+                const eloEl = document.getElementById('elo');
+                eloEl.textContent = 'Ошибка';
+                eloEl.classList.add('error-state');
+            } finally {
+                setTimeout(() => {
+                    overlay.classList.remove('updating');
+                }, 500);
+            }
+        }
+
+        // Инициализация
+        updateStats();
+        setInterval(updateStats, CONFIG.updateInterval * 1000);
+    </script>
+</body>
+
+</html>
