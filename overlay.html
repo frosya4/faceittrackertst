@@ -331,6 +331,9 @@
 
     <script>
         // Конфигурация
+        const params = new URLSearchParams(window.location.search);
+        const playerNickname = params.get('n') || params.get('nickname') || 'DeRoyse';
+
         const CONFIG = {
             apiUrl: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                 ? 'http://localhost:3000/api/stats'
@@ -350,14 +353,23 @@
             overlay.classList.add('updating');
 
             try {
-                // Добавляем timestamp для обхода кеша браузера (особенно в OBS)
-                const cacheBuster = `?t=${Date.now()}`;
+                // Добавляем nickname и timestamp для обхода кеша
+                const cacheBuster = `?n=${encodeURIComponent(playerNickname)}&t=${Date.now()}`;
                 const response = await fetch(CONFIG.apiUrl + cacheBuster);
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.error && !data.elo) throw new Error(data.error);
+
+                // Если никнейм на сервере отличается от запрошенного (например, ошибка поиска), уведомляем
+                if (data.nickname && data.nickname.toLowerCase() !== playerNickname.toLowerCase()) {
+                    console.warn(`Requested ${playerNickname}, but got ${data.nickname}`);
+                }
 
                 // Обновление ELO и уровня
                 document.getElementById('elo').textContent = Math.round(data.elo) || 0;

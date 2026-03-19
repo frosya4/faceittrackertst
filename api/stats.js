@@ -21,7 +21,10 @@ export default async function handler(req, res) {
     }
 
     try {
-        const stats = await fetchPlayerData();
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const nickname = url.searchParams.get('n') || url.searchParams.get('nickname');
+
+        const stats = await fetchPlayerData(nickname);
         cache.data = stats;
         cache.timestamp = now;
         res.status(200).json({ ...stats, fromCache: false });
@@ -31,16 +34,20 @@ export default async function handler(req, res) {
     }
 }
 
-async function fetchPlayerData() {
-    const playerUrl = `https://open.faceit.com/data/v4/players?nickname=${CONFIG.playerNickname}`;
+async function fetchPlayerData(requestedNickname) {
+    const nickname = requestedNickname || CONFIG.playerNickname;
+    const playerUrl = `https://open.faceit.com/data/v4/players?nickname=${encodeURIComponent(nickname)}`;
     const headers = { 'Authorization': `Bearer ${CONFIG.apiToken}` };
 
-    console.log('Fetching player info...');
+    console.log(`Fetching player info for: ${nickname}...`);
     const playerRes = await fetch(playerUrl, { headers });
 
     if (!playerRes.ok) {
+        if (playerRes.status === 404) {
+            throw new Error(`Игрок ${nickname} не найден в Faceit. Проверьте никнейм.`);
+        }
         const errorText = await playerRes.text();
-        throw new Error(`Player ${CONFIG.playerNickname} not found: ${playerRes.status} ${errorText}`);
+        throw new Error(`Ошибка API Faceit: ${playerRes.status} ${errorText}`);
     }
 
     const playerData = await playerRes.json();

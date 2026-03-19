@@ -19,8 +19,8 @@ let lastUpdate = 0;
 const CACHE_DURATION = 15000; // 15 секунд
 
 // Получение данных игрока из Faceit API
-async function fetchPlayerData() {
-    const nickname = CONFIG.playerNickname;
+async function fetchPlayerData(requestedNickname) {
+    const nickname = requestedNickname || CONFIG.playerNickname;
 
     // Поиск игрока по нику
     const playerUrl = `https://open.faceit.com/data/v4/players?nickname=${encodeURIComponent(nickname)}`;
@@ -33,6 +33,9 @@ async function fetchPlayerData() {
     });
 
     if (!playerResponse.ok) {
+        if (playerResponse.status === 404) {
+            throw new Error(`Игрок ${nickname} не найден в Faceit. Проверьте никнейм.`);
+        }
         throw new Error(`Ошибка получения игрока: ${playerResponse.status}`);
     }
 
@@ -191,22 +194,25 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/stats') {
+    if (req.method === 'GET' && req.url.startsWith('/api/stats')) {
         try {
             const now = Date.now();
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            const nickname = url.searchParams.get('n') || url.searchParams.get('nickname');
 
-            // Используем кэш если данные свежие и без ошибок
-            if (cachedData && !cachedData.error && (now - lastUpdate) < CACHE_DURATION) {
+            // Используем кэш только если никнейм совпадает и данные свежие (упрощено: кэш только для default никнейма или пропускаем для простоты)
+            // Для простоты реализации динамики - пропускаем кэш если никнейм указан явно
+            if (!nickname && cachedData && !cachedData.error && (now - lastUpdate) < CACHE_DURATION) {
                 res.writeHead(200);
                 res.end(JSON.stringify({ ...cachedData, fromCache: true }));
                 return;
             }
 
             // Получаем свежие данные
-            const data = await fetchPlayerData();
+            const data = await fetchPlayerData(nickname);
 
-            // Кэшируем только успешные данные
-            if (!data.error) {
+            // Кэшируем только если это стандартный никнейм
+            if (!nickname && !data.error) {
                 cachedData = data;
                 lastUpdate = now;
             }

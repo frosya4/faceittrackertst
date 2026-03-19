@@ -6,7 +6,15 @@
             "destination": "/overlay.html"
         },
         {
+            "source": "/overlay",
+            "destination": "/overlay.html"
+        },
+        {
             "source": "/api/stats",
+            "destination": "/api/stats.js"
+        },
+        {
+            "source": "/stats",
             "destination": "/api/stats.js"
         }
     ]
