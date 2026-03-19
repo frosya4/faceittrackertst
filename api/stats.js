@@ -81,11 +81,20 @@ async function fetchPlayerData() {
     const allMatchStats = await Promise.all(matchStatsPromises);
     const last20Stats = calculateLast20Stats(allMatchStats, playerId, lifetimeStats);
 
+    // Получаем результаты последних 5 матчей
+    const recentResults = matches.slice(0, 5).map(match => {
+        const teamId = match.teams.faction1.players.some(p => p.player_id === playerId) ? 'faction1' : 'faction2';
+        const winnerId = match.results?.winner;
+        return winnerId === teamId ? 'W' : 'L';
+    });
+
     return {
         nickname: CONFIG.playerNickname,
         elo: playerData.games.cs2.faceit_elo,
         level: playerData.games.cs2.skill_level,
         kdr: parseFloat(lifetimeStats["Average K/D Ratio"]) || 0,
+        lastMatchId: matches[0]?.match_id || null,
+        recentResults, // ["W", "L", "W", ...]
         ...last20Stats
     };
 }

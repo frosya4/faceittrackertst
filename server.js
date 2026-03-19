@@ -1,6 +1,10 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Конфигурация
 const CONFIG = {
@@ -95,6 +99,11 @@ async function fetchPlayerData() {
         elo: cs2Stats.faceit_elo || 0,
         level: cs2Stats.skill_level || 1,
         kdr: parseFloat(lifetimeStats["Average K/D Ratio"]) || 0,
+        lastMatchId: historyItems[0]?.match_id || null,
+        recentResults: historyItems.slice(0, 5).map(match => {
+            const teamId = match.teams.faction1.players.some(p => p.player_id === playerId) ? 'faction1' : 'faction2';
+            return match.results?.winner === teamId ? 'W' : 'L';
+        }),
         winrate: last20Stats.winrate,
         avgKills: last20Stats.avgKills,
         hsPercent: last20Stats.hsPercent,

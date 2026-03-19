@@ -135,11 +135,12 @@
 
         .matches-header {
             text-align: center;
-            font-size: 11px;
-            color: #888;
-            font-weight: 600;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            font-size: 10px;
+            color: #555;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
         }
 
         .stats-row {
@@ -152,20 +153,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
         }
 
         .stat-value {
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 26px;
+            font-weight: 800;
             color: #fff;
+            letter-spacing: -0.5px;
         }
 
         .stat-label {
-            font-size: 11px;
-            color: #888;
+            font-size: 9px;
+            color: #666;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            font-weight: 600;
         }
 
         .stat-group.middle {
@@ -174,28 +177,77 @@
 
         .stat-group.middle::before,
         .stat-group.middle::after {
-            content: '|';
+            content: '';
             position: absolute;
-            color: #444;
-            font-size: 16px;
+            background: #333;
+            width: 1px;
+            height: 30px;
             top: 50%;
             transform: translateY(-50%);
         }
 
         .stat-group.middle::before {
-            left: -25px;
+            left: -35px;
         }
 
         .stat-group.middle::after {
-            right: -25px;
+            right: -35px;
+        }
+
+        .stat-main-row {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
         }
 
         .stat-sublabel {
-            font-size: 10px;
-            color: #666;
+            font-size: 18px;
+            color: #888;
+            font-weight: 700;
         }
 
-        /* Анимация обновления */
+        /* Сессия и история игр */
+        .session-row {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .session-score {
+            font-size: 11px;
+            color: #707070;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .history-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+            transition: all 0.3s ease;
+        }
+
+        .dot.win {
+            background: #4ade80;
+            /* Зеленый */
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+        }
+
+        .dot.loss {
+            background: #f87171;
+            /* Красный */
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
+        }
+
         @keyframes pulse {
 
             0%,
@@ -237,8 +289,8 @@
                 </div>
                 <span class="separator">|</span>
                 <div class="kdr-section">
-                    <span class="kdr-value" id="kdr">--</span>
-                    <span class="kdr-label">KDR</span>
+                    <span class="kdr-value" id="kd-ratio">--</span>
+                    <span class="kdr-label">K/D</span>
                 </div>
             </div>
 
@@ -251,14 +303,26 @@
                         <span class="stat-label">Win rate</span>
                     </div>
                     <div class="stat-group middle">
-                        <span class="stat-value" id="avg-kills">--</span>
-                        <span class="stat-sublabel" id="hs-percent">/ --%</span>
+                        <div class="stat-main-row">
+                            <span class="stat-value" id="avg-kills">--</span>
+                            <span class="stat-sublabel" id="hs-percent">/ --%</span>
+                        </div>
                         <span class="stat-label">Avg. kills / HS</span>
                     </div>
                     <div class="stat-group">
-                        <span class="stat-value" id="kd-ratio">--</span>
-                        <span class="stat-sublabel" id="kr-ratio">/ --</span>
-                        <span class="stat-label">Avg. K/D / K/R</span>
+                        <div class="stat-main-row">
+                            <span class="stat-value" id="kdr">--</span>
+                            <span class="stat-sublabel" id="kr-ratio">/ --</span>
+                        </div>
+                        <span class="stat-label">Overall KDR / K/R</span>
+                    </div>
+                </div>
+
+                <!-- Сессия и история игр -->
+                <div class="session-row">
+                    <div class="session-score" id="session-score">SESSION: 0W - 0L</div>
+                    <div class="history-dots" id="history-dots">
+                        <!-- Кружки W/L появятся тут -->
                     </div>
                 </div>
             </div>
@@ -277,71 +341,75 @@
             updateInterval: 60
         };
 
+        // Глобальное состояние сессии
+        let lastMatchId = null;
+        let sessionWins = 0;
+        let sessionLosses = 0;
+
         // Обновление данных
         async function updateStats() {
             const overlay = document.getElementById('overlay');
-
             overlay.classList.add('updating');
 
             try {
                 const response = await fetch(CONFIG.apiUrl);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
-                if (data.error && !data.elo) {
-                    throw new Error(data.error);
-                }
+                if (data.error && !data.elo) throw new Error(data.error);
 
-                // Цвета уровней Faceit
-                const levelColors = {
-                    1: '#eeeeee',
-                    2: '#1ce52c', 3: '#1ce52c',
-                    4: '#ffde00', 5: '#ffde00',
-                    6: '#ff9100', 7: '#ff9100',
-                    8: '#ff4e00', 9: '#ff4e00',
-                    10: '#ff0000'
-                };
-
-                const currentLevel = data.level || 1;
-                const levelColor = levelColors[currentLevel] || '#ff5500';
-
-                // Обновление элементов
+                // Обновление ELO и уровня
                 document.getElementById('elo').textContent = Math.round(data.elo) || 0;
-
                 const levelBadge = document.querySelector('.level-badge');
-                levelBadge.setAttribute('data-level', currentLevel);
-
-                // Для 10 уровня кольцо всегда полное, для остальных - прогресс до следующего (упрощенно до 10 части)
-                const percent = currentLevel === 10 ? 100 : (currentLevel / 10) * 100;
-
-                document.documentElement.style.setProperty('--level-color', levelColor);
+                levelBadge.setAttribute('data-level', data.level || 1);
+                const percent = (data.level || 1) === 10 ? 100 : (data.level / 10) * 100;
                 levelBadge.style.setProperty('--level-percent', `${percent}%`);
 
-                document.getElementById('kdr').textContent = (data.kdr || 0).toFixed(2);
+                // Обновление статистики
+                document.getElementById('kd-ratio').textContent = (data.kdRatio || 0).toFixed(2);
                 document.getElementById('winrate').textContent = `${data.winrate || 0}%`;
                 document.getElementById('avg-kills').textContent = (data.avgKills || 0).toFixed(1);
                 document.getElementById('hs-percent').textContent = `/ ${data.hsPercent || 0}%`;
-                document.getElementById('kd-ratio').textContent = (data.kdRatio || 0).toFixed(2);
+                document.getElementById('kdr').textContent = (data.kdr || 0).toFixed(2);
                 document.getElementById('kr-ratio').textContent = `/ ${(data.krRatio || 0).toFixed(2)}`;
+
+                // Логика сессии (W/L)
+                if (data.lastMatchId && lastMatchId && data.lastMatchId !== lastMatchId) {
+                    const latestResult = data.recentResults?.[0];
+                    if (latestResult === 'W') sessionWins++;
+                    else if (latestResult === 'L') sessionLosses++;
+                }
+
+                // Сохраняем последний ID
+                if (data.lastMatchId) lastMatchId = data.lastMatchId;
+
+                document.getElementById('session-score').textContent = `SESSION: ${sessionWins}W - ${sessionLosses}L`;
+
+                // Отрисовка кружков истории
+                renderHistoryDots(data.recentResults);
 
                 // Убираем ошибку если была
                 document.querySelectorAll('*').forEach(el => el.classList.remove('error-state'));
 
             } catch (error) {
-                console.error('Ошибка обновления данных:', error);
-
-                const eloEl = document.getElementById('elo');
-                eloEl.textContent = 'Ошибка';
-                eloEl.classList.add('error-state');
+                console.error('Ошибка:', error);
+                document.getElementById('elo').textContent = 'Ошибка';
+                document.getElementById('elo').classList.add('error-state');
             } finally {
-                setTimeout(() => {
-                    overlay.classList.remove('updating');
-                }, 500);
+                setTimeout(() => overlay.classList.remove('updating'), 500);
             }
+        }
+
+        function renderHistoryDots(results) {
+            const container = document.getElementById('history-dots');
+            if (!results) return;
+            container.innerHTML = '';
+            // Отрисовываем 5 штук, от старых к новым слева направо
+            [...results].reverse().forEach(res => {
+                const dot = document.createElement('div');
+                dot.className = `dot ${res === 'W' ? 'win' : 'loss'}`;
+                container.appendChild(dot);
+            });
         }
 
         // Инициализация
