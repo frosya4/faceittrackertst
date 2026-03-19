@@ -16,6 +16,8 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
 
+    const now = Date.now();
+
     try {
         const url = new URL(req.url, `http://${req.headers.host}`);
         const nickname = url.searchParams.get('n') || url.searchParams.get('nickname');
